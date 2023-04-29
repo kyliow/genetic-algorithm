@@ -7,7 +7,7 @@ import constants as c
 
 pyplot.style.use("seaborn-pastel")
 
-numpy.random.seed(150)
+numpy.random.seed(c.random_seed)
 
 # Initialise figure
 fig, ax = pyplot.subplots(1, 1, figsize=(10, 5))
@@ -53,7 +53,7 @@ def distance_travelled(position):
         return 0.0, 0
 
     # For simplicity, assume car and blocks are circles
-    car_radius = c.block_height
+    car_radius = c.block_height * 1.2
     for n in range(c.N_rectangle):
         within_car_radius_indices = numpy.where(
             (position > n - car_radius) & (position < n + car_radius)
@@ -68,8 +68,16 @@ def distance_travelled(position):
             )
             return position[collision_index], collision_index
 
-    # If no collision at all, return last position and max time
-    return position[-1], c.N_frame
+    # Code reaches here if there is no collision.
+    # If the final position is beyond maximum distance of simulation, get the position 
+    # and time when maximum distance is reached.
+    if position[-1] > c.max_distance:
+        end_index = numpy.where(position > c.max_distance)[0][0]
+        return position[end_index], end_index
+
+    # If the car ends within simulation box
+    else:   
+        return position[-1], c.N_frame - 1
 
 
 def compute_initial_accelerations():
@@ -92,22 +100,12 @@ def compute_positions(accelerations):
     return positions
 
 
-def fitness_calculation(distances, accelerations):
+def compute_fitness_probability(distances, times):
     distances = numpy.array(distances)
 
     # Compute fitness probability and find best/worst m chromosomes
     p_fitness = distances / numpy.sum(distances)
-    p_fitness_sorted_indices = numpy.argsort(p_fitness)
-    N_chromosome_to_be_removed = int(c.N_chromosome * c.remove_proportion)
-    worse_m_chromosome_indices = p_fitness_sorted_indices[:N_chromosome_to_be_removed]
-    best_m_chromosome_indices = p_fitness_sorted_indices[
-        c.N_chromosome - N_chromosome_to_be_removed :
-    ]
-
-    # Replace worst chromosomes with best chromosomes
-    accelerations[worse_m_chromosome_indices] = accelerations[best_m_chromosome_indices]
-
-    return accelerations
+    return p_fitness
 
 
 def crossover(accelerations):
@@ -152,6 +150,61 @@ def mutation(accelerations):
     return accelerations
 
 
+def plot_distances(fitness, max_g):
+    f, ax = pyplot.subplots(figsize=(10, 5))
+    ax.plot(range(max_g), fitness)
+    ax.set_xlabel("Generation")
+    ax.set_ylabel("Best distance")
+    pyplot.show()
+
+
+class Selection:
+    def __init__(self, p_fitness, accelerations):
+        self.p_fitness = p_fitness
+        self.accelerations = accelerations
+
+    def simple_sort(self):
+        """
+        Selection via simple sorting
+        """
+        p_fitness_sorted_indices = numpy.argsort(self.p_fitness)
+        N_chromosome_to_be_removed = int(c.N_chromosome * c.remove_proportion)
+        worse_m_chromosome_indices = p_fitness_sorted_indices[
+            :N_chromosome_to_be_removed
+        ]
+        best_m_chromosome_indices = p_fitness_sorted_indices[
+            c.N_chromosome - N_chromosome_to_be_removed :
+        ]
+
+        # Replace worst chromosomes with best chromosomes
+        self.accelerations[worse_m_chromosome_indices] = self.accelerations[
+            best_m_chromosome_indices
+        ]
+
+        return self.accelerations
+
+    def roulette_wheel(self):
+        """
+        Selection via roulette wheel
+        """
+        # N_chromosome_to_be_removed = int(c.N_chromosome * c.remove_proportion)
+        # N_chromosome_to_keep = c.N_chromosome - N_chromosome_to_be_removed
+        # chromosome_to_keep_indices = numpy.random.choice(
+        #     c.N_chromosome, N_chromosome_to_keep, False, self.p_fitness
+        # )
+        # extra_chromosome_to_keep_indices = numpy.random.choice(
+        #     c.N_chromosome, N_chromosome_to_be_removed, False, self.p_fitness
+        # )
+        # chromosome_to_keep_indices = numpy.append(
+        #     chromosome_to_keep_indices, extra_chromosome_to_keep_indices
+        # )
+        
+        chromosome_to_keep_indices = numpy.random.choice(
+            c.N_chromosome, c.N_chromosome, True, self.p_fitness
+        )
+
+        return self.accelerations[chromosome_to_keep_indices]
+
 class Animation:
     def init():
         for block in blocks:
@@ -177,8 +230,10 @@ class Animation:
         return all_patches
 
 
-def main(animate=True, save=True):
+def main(animate=False, save=False):
     accelerations = compute_initial_accelerations()
+    best_distances = []
+    max_g = c.N_generation
     for g in range(c.N_generation):
         # Calculate for this generation
         positions = compute_positions(accelerations)
@@ -188,6 +243,7 @@ def main(animate=True, save=True):
         distances, times = zip(*distances_times)
         max_distance_index = distances.index(max(distances))
 
+        best_distances.append(distances[max_distance_index])
         print(
             f"--- Generation #{g} ---\n"
             + f"Distance travelled: {distances[max_distance_index]:.3f}\n"
@@ -195,7 +251,27 @@ def main(animate=True, save=True):
         )
 
         # Animation
-        if animate == True and any(t > 0 for t in times):
+        # if g == c.N_generation - 1:
+        #     if animate == True and any(t > 0 for t in times):
+        #         anim = FuncAnimation(
+        #             fig,
+        #             Animation.animate,
+        #             init_func=Animation.init,
+        #             frames=times[max_distance_index],
+        #             interval=20,
+        #             blit=True,
+        #             fargs=(
+        #                 positions[max_distance_index],
+        #                 g,
+        #             ),
+        #         )
+        #         if save == True:
+        #             anim.save(f"./animation/car-{g}.gif")
+        #         pyplot.show()
+
+        if max(distances) > c.max_distance:
+            print("Best solution reached")
+            max_g = g + 1
             anim = FuncAnimation(
                 fig,
                 Animation.animate,
@@ -208,21 +284,20 @@ def main(animate=True, save=True):
                     g,
                 ),
             )
-            if save == True:
-                anim.save(f"car-{g}.gif")
-            pyplot.show()
 
-        if max(distances) > c.max_distance:
-            print("Best solution reached")
             break
 
         if g != c.N_generation - 1:
+            p_fitness = compute_fitness_probability(distances, times)
+
             # Replace worst chromosomes with new chromosomes via sorting
-            accelerations = fitness_calculation(distances, accelerations)
+            accelerations = Selection(p_fitness, accelerations).roulette_wheel()
 
             # Crossover and mutation
             accelerations = crossover(accelerations)
             accelerations = mutation(accelerations)
+
+    plot_distances(best_distances, max_g)
 
     print("Simulation complete!")
 
