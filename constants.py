@@ -1,6 +1,6 @@
 # Genetic algorithm settings
 N_chromosome = 60
-N_generation = 200
+N_generation = 2
 remove_proportion = 1/3
 p_crossover = 0.1
 p_mutation = 0.05
