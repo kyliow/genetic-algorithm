@@ -4,6 +4,10 @@ import constants as c
 
 
 class Crossover:
+    """
+    Class to handle crossover related algorithm
+    """
+
     def __init__(self, accelerations: numpy.ndarray):
         self.accelerations = accelerations
 

@@ -1,12 +1,12 @@
 import numpy
 from matplotlib import patches, pyplot
 from matplotlib.animation import FuncAnimation
-from scipy.integrate import cumulative_trapezoid
 
 import constants as c
 from genetic.crossover import Crossover
 from genetic.mutation import Mutation
 from genetic.selection import Selection
+from physics import Physics
 
 pyplot.style.use("seaborn-pastel")
 
@@ -42,65 +42,6 @@ car = patches.Rectangle((0, 0), c.block_height, c.block_width)
 
 # Initialise text
 label = ax.text(-0.05, 0, "", transform=ax.transAxes)
-
-
-def distance_travelled(position):
-    """
-    Distance from start point. Greater distance is preferred.
-
-    Return distance travelled and time taken
-    """
-    # If the car goes backward and hit the back wall, return zero
-    # distance travelled
-    if numpy.any(position <= -c.plot_axis_offset):
-        return 0.0, 0
-
-    # For simplicity, assume car and blocks are circles
-    car_radius = c.block_height * 1.2
-    for n in range(c.N_rectangle):
-        within_car_radius_indices = numpy.where(
-            (position > n - car_radius) & (position < n + car_radius)
-        )[0]
-        car_x = position[within_car_radius_indices]
-        block_y = ys[n][within_car_radius_indices]
-        car_block_distance = numpy.sqrt((car_x - n) ** 2 + block_y**2)
-        if numpy.any(car_block_distance <= car_radius):
-            collision_index = (
-                numpy.where(car_block_distance <= car_radius)[0][0]
-                + within_car_radius_indices[0]
-            )
-            return position[collision_index], collision_index
-
-    # Code reaches here if there is no collision.
-    # If the final position is beyond maximum distance of simulation, get the position
-    # and time when maximum distance is reached.
-    if position[-1] > c.max_distance:
-        end_index = numpy.where(position > c.max_distance)[0][0]
-        return position[end_index], end_index
-
-    # If the car ends within simulation box
-    else:
-        return position[-1], c.N_frame - 1
-
-
-def compute_initial_accelerations():
-    """
-    Compute N_chromosome number of initial accelerations.
-    """
-    accelerations = numpy.random.randint(
-        -c.max_acceleration, c.max_acceleration + 1, (c.N_chromosome, c.N_frame)
-    )
-    accelerations = accelerations * c.slowdown_factor
-    return accelerations
-
-
-def compute_positions(accelerations):
-    """
-    Compute positions from accelerations
-    """
-    velocities = cumulative_trapezoid(accelerations, initial=0)
-    positions = cumulative_trapezoid(velocities, initial=0)
-    return positions
 
 
 def compute_fitness_probability(distances, times):
@@ -145,14 +86,16 @@ class Animation:
 
 
 def main(animate=False, save=False):
-    accelerations = compute_initial_accelerations()
+    accelerations = Physics.compute_initial_accelerations()
+
     best_distances = []
     max_g = c.N_generation
     for g in range(c.N_generation):
         # Calculate for this generation
-        positions = compute_positions(accelerations)
+        positions = Physics.compute_positions(accelerations)
+
         distances_times = [
-            distance_travelled(positions[m]) for m in range(c.N_chromosome)
+            Physics.distance_travelled(positions[m], ys) for m in range(c.N_chromosome)
         ]
         distances, times = zip(*distances_times)
         max_distance_index = distances.index(max(distances))

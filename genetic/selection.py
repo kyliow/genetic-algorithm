@@ -5,7 +5,7 @@ import constants as c
 
 class Selection:
     """
-    Selection class
+    Class to handle selection related algorithm
     """
 
     def __init__(self, p_fitness: numpy.ndarray, accelerations: numpy.ndarray):
