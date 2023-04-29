@@ -11,12 +11,16 @@ class Physics:
     Physics class
     """
 
-    def compute_initial_accelerations() -> numpy.ndarray:
+    def compute_initial_accelerations(
+        N_chromosome_to_spawn: int = c.N_chromosome,
+    ) -> numpy.ndarray:
         """
-        Compute N_chromosome number of initial accelerations.
+        Compute initial accelerations of the chromosomes
         """
         accelerations = numpy.random.randint(
-            -c.max_acceleration, c.max_acceleration + 1, (c.N_chromosome, c.N_frame)
+            -c.max_acceleration,
+            c.max_acceleration + 1,
+            (N_chromosome_to_spawn, c.N_frame),
         )
         accelerations = accelerations * c.slowdown_factor
         return accelerations
@@ -29,7 +33,9 @@ class Physics:
         positions = cumulative_trapezoid(velocities, initial=0)
         return positions
 
-    def distance_travelled(position: numpy.ndarray, ys: List) -> Tuple[float, int]:
+    def distance_travelled(
+        position: numpy.ndarray, ys: List[float]
+    ) -> Tuple[float, int]:
         """
         Distance from start point. Greater distance is preferred.
 

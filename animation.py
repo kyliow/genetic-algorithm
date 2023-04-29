@@ -95,19 +95,19 @@ class Animation:
         all_patches = self.blocks + [self.car] + [self.label]
         return all_patches
 
-    def animate(self, generation, times, positions, max_distance_index, save=False):
+    def animate(self, generation, times, positions, best_fitness_index, save=False):
         anim = FuncAnimation(
             self.fig,
             self.animation_function,
             init_func=self.start_frame,
-            frames=times[max_distance_index],
+            frames=times[best_fitness_index],
             interval=20,
             blit=True,
             fargs=(
                 generation,
-                positions[max_distance_index],
+                positions[best_fitness_index],
             ),
         )
         if save == True:
-            anim.save(f"./animation/car-{generation}.gif")
+            anim.save(f"animation/car-{generation}.gif")
         pyplot.show()

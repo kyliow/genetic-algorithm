@@ -1,6 +1,7 @@
 import numpy
 
 import constants as c
+from physics import Physics
 
 
 class Selection:
@@ -41,3 +42,21 @@ class Selection:
         )
 
         return self.accelerations[chromosome_to_keep_indices]
+
+    def simple_sort_with_new_chromosomes(self) -> numpy.ndarray:
+        """
+        Selection via simple sorting, then introduce new chromosomes to replace
+        bad chromosomes
+        """
+        p_fitness_sorted_indices = numpy.argsort(self.p_fitness)
+        N_chromosome_to_be_removed = int(c.N_chromosome * c.remove_proportion)
+        worse_m_chromosome_indices = p_fitness_sorted_indices[
+            :N_chromosome_to_be_removed
+        ]
+
+        # Replace worst chromosomes with new chromosomes
+        self.accelerations[
+            worse_m_chromosome_indices
+        ] = Physics.compute_initial_accelerations(N_chromosome_to_be_removed)
+
+        return self.accelerations

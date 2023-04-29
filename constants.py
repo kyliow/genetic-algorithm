@@ -1,18 +1,18 @@
 # Genetic algorithm settings
 N_chromosome = 60
-N_generation = 2
-remove_proportion = 1/3
-p_crossover = 0.1
+N_generation = 500
+remove_proportion = 0.2
+p_crossover = 0.2
 p_mutation = 0.05
 
 # Animation settings
-N_frame = 800
+N_frame = 400
 
 # Random seed
-random_seed = 150
+random_seed = 125
 
 # Patch settings
-N_rectangle = 20
+N_rectangle = 18
 block_width = 0.1
 block_height = 0.3
 
