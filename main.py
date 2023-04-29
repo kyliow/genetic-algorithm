@@ -4,6 +4,9 @@ from matplotlib.animation import FuncAnimation
 from scipy.integrate import cumulative_trapezoid
 
 import constants as c
+from genetic.crossover import Crossover
+from genetic.mutation import Mutation
+from genetic.selection import Selection
 
 pyplot.style.use("seaborn-pastel")
 
@@ -69,14 +72,14 @@ def distance_travelled(position):
             return position[collision_index], collision_index
 
     # Code reaches here if there is no collision.
-    # If the final position is beyond maximum distance of simulation, get the position 
+    # If the final position is beyond maximum distance of simulation, get the position
     # and time when maximum distance is reached.
     if position[-1] > c.max_distance:
         end_index = numpy.where(position > c.max_distance)[0][0]
         return position[end_index], end_index
 
     # If the car ends within simulation box
-    else:   
+    else:
         return position[-1], c.N_frame - 1
 
 
@@ -108,48 +111,6 @@ def compute_fitness_probability(distances, times):
     return p_fitness
 
 
-def crossover(accelerations):
-    """
-    Simple non-binary crossover
-    """
-    N_crossover = int(c.p_crossover * c.N_chromosome)
-    if N_crossover % 2 != 0:
-        N_crossover -= 1
-
-    random_indices = numpy.random.choice(
-        c.N_chromosome, size=N_crossover, replace=False
-    )
-
-    # Crossover front and rear chromosome pairs
-    for n in range(int(N_crossover / 2)):
-        a, b = random_indices[n], random_indices[N_crossover - n - 1]
-        front = accelerations[a].copy()
-        rear = accelerations[b].copy()
-        portion = numpy.random.choice(c.N_frame, size=2, replace=False)
-        accelerations[a][portion[0] : portion[1]] = rear[portion[0] : portion[1]]
-        accelerations[b][portion[0] : portion[1]] = front[portion[0] : portion[1]]
-
-    return accelerations
-
-
-def mutation(accelerations):
-    """
-    Simple non-binary mutation
-    """
-    N_mutation = int(c.N_chromosome * c.N_frame * c.p_mutation)
-    mutation_x = numpy.random.randint(c.N_frame, size=N_mutation)
-    mutation_y = numpy.random.randint(c.N_chromosome, size=N_mutation)
-
-    for i in range(N_mutation):
-        x, y = mutation_x[i], mutation_y[i]
-        accelerations[y, x] = (
-            numpy.random.randint(-c.max_acceleration, c.max_acceleration + 1)
-            * c.slowdown_factor
-        )
-
-    return accelerations
-
-
 def plot_distances(fitness, max_g):
     f, ax = pyplot.subplots(figsize=(10, 5))
     ax.plot(range(max_g), fitness)
@@ -157,53 +118,6 @@ def plot_distances(fitness, max_g):
     ax.set_ylabel("Best distance")
     pyplot.show()
 
-
-class Selection:
-    def __init__(self, p_fitness, accelerations):
-        self.p_fitness = p_fitness
-        self.accelerations = accelerations
-
-    def simple_sort(self):
-        """
-        Selection via simple sorting
-        """
-        p_fitness_sorted_indices = numpy.argsort(self.p_fitness)
-        N_chromosome_to_be_removed = int(c.N_chromosome * c.remove_proportion)
-        worse_m_chromosome_indices = p_fitness_sorted_indices[
-            :N_chromosome_to_be_removed
-        ]
-        best_m_chromosome_indices = p_fitness_sorted_indices[
-            c.N_chromosome - N_chromosome_to_be_removed :
-        ]
-
-        # Replace worst chromosomes with best chromosomes
-        self.accelerations[worse_m_chromosome_indices] = self.accelerations[
-            best_m_chromosome_indices
-        ]
-
-        return self.accelerations
-
-    def roulette_wheel(self):
-        """
-        Selection via roulette wheel
-        """
-        # N_chromosome_to_be_removed = int(c.N_chromosome * c.remove_proportion)
-        # N_chromosome_to_keep = c.N_chromosome - N_chromosome_to_be_removed
-        # chromosome_to_keep_indices = numpy.random.choice(
-        #     c.N_chromosome, N_chromosome_to_keep, False, self.p_fitness
-        # )
-        # extra_chromosome_to_keep_indices = numpy.random.choice(
-        #     c.N_chromosome, N_chromosome_to_be_removed, False, self.p_fitness
-        # )
-        # chromosome_to_keep_indices = numpy.append(
-        #     chromosome_to_keep_indices, extra_chromosome_to_keep_indices
-        # )
-        
-        chromosome_to_keep_indices = numpy.random.choice(
-            c.N_chromosome, c.N_chromosome, True, self.p_fitness
-        )
-
-        return self.accelerations[chromosome_to_keep_indices]
 
 class Animation:
     def init():
@@ -294,8 +208,8 @@ def main(animate=False, save=False):
             accelerations = Selection(p_fitness, accelerations).roulette_wheel()
 
             # Crossover and mutation
-            accelerations = crossover(accelerations)
-            accelerations = mutation(accelerations)
+            accelerations = Crossover(accelerations).simple_crossover()
+            accelerations = Mutation(accelerations).simple_mutation()
 
     plot_distances(best_distances, max_g)
 
