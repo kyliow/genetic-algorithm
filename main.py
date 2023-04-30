@@ -31,7 +31,7 @@ def plot_best_fitness_per_generation(fitness, max_g):
     pyplot.show()
 
 
-def main(animate=False, save=False):
+def main(animate=False, save=False, g_per_save: int = 10):
     """
     Main function to simulate genetic iteration
     """
@@ -47,16 +47,17 @@ def main(animate=False, save=False):
         # Calculate the positions for this generation
         positions = Physics.compute_positions(accelerations)
 
-        # Get distance travelled and time taken for each chromosome
-        distances_times = [
+        # Get distance travelled, time taken, and whether the car collided for each
+        # chromosome
+        distances_times_collided = [
             Physics.distance_travelled(positions[m], animation_class.ys)
             for m in range(c.N_chromosome)
         ]
-        distances, times = zip(*distances_times)
+        distances, times, collided = zip(*distances_times_collided)
 
         # Calculate fitness for all chromosomes
-        fitness_class = Fitness(distances, times)
-        fitnesses = fitness_class.with_time_penalty()
+        fitness_class = Fitness(distances, times, collided)
+        fitnesses = fitness_class.time_penalty_on_non_collided_chromosomes()
 
         # Get the best performing chromosome
         best_fitness_index = numpy.argmax(fitnesses)
@@ -72,21 +73,22 @@ def main(animate=False, save=False):
         if (
             animate == True
             and any(t > 0 for t in times)
-            and (g % 10 == 0 or g == c.N_generation - 1)
+            and (g % g_per_save == 0 or g == c.N_generation - 1)
         ):
             animation_class.animate(g, times, positions, best_fitness_index, save)
 
         # Stop simulation if the car reaches the maximum distance
         if max(distances) > c.max_distance:
             print("Maximum distance reached")
-            # animation_class.animate(g, times, positions, best_fitness_index, save)
             max_g = g + 1
+            if animate == True:
+                animation_class.animate(g, times, positions, best_fitness_index, save)
             break
 
         # Run core genetic algorithms when last generation has not reached
         if g != c.N_generation - 1:
             p_fitness = fitness_class.fitness_probabilities(fitnesses)
-            accelerations = Selection(p_fitness, accelerations).simple_sort()
+            accelerations = Selection(p_fitness, accelerations).roulette_wheel()
             accelerations = Crossover(accelerations).simple_crossover()
             accelerations = Mutation(accelerations).simple_mutation()
 
@@ -101,4 +103,5 @@ if __name__ == "__main__":
     # ax.plot(range(N_frame), velocity)
     # ax.plot(range(N_frame), position)
     # pyplot.show()
-    main(animate=True, save=True)
+    main(animate=False)
+

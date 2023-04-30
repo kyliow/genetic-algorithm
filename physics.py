@@ -35,7 +35,7 @@ class Physics:
 
     def distance_travelled(
         position: numpy.ndarray, ys: List[float]
-    ) -> Tuple[float, int]:
+    ) -> Tuple[float, int, bool]:
         """
         Distance from start point. Greater distance is preferred.
 
@@ -44,7 +44,7 @@ class Physics:
         # If the car goes backward and hit the back wall, return zero
         # distance travelled
         if numpy.any(position <= -c.plot_axis_offset):
-            return 0.0, 0
+            return 0.0, 0, True
 
         # For simplicity, assume car and blocks are circles
         car_radius = c.block_height * 1.2
@@ -60,15 +60,15 @@ class Physics:
                     numpy.where(car_block_distance <= car_radius)[0][0]
                     + within_car_radius_indices[0]
                 )
-                return position[collision_index], collision_index
+                return position[collision_index], collision_index, True
 
         # Code reaches here if there is no collision.
         # If the final position is beyond maximum distance of simulation, get the position
         # and time when maximum distance is reached.
         if position[-1] > c.max_distance:
             end_index = numpy.where(position > c.max_distance)[0][0]
-            return position[end_index], end_index
+            return position[end_index], end_index, False
 
         # If the car ends within simulation box
         else:
-            return position[-1], c.N_frame - 1
+            return position[-1], c.N_frame - 1, False
