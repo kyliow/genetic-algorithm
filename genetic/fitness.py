@@ -11,13 +11,13 @@ class Fitness:
 
     def __init__(
         self,
-        distances: Union[List[float], numpy.ndarray],
-        times: Union[List[float], numpy.ndarray],
-        collided: Union[List[bool], numpy.ndarray],
+        distances: numpy.ndarray,
+        times: numpy.ndarray,
+        collided: numpy.ndarray,
     ):
-        self.distances = numpy.asarray(distances)
-        self.times = numpy.asarray(times)
-        self.collided = numpy.asarray(collided)
+        self.distances = distances
+        self.times = times
+        self.collided = collided
 
     def normalised_distance(self) -> numpy.ndarray:
         """
@@ -36,8 +36,10 @@ class Fitness:
         result = numpy.where(result > 0, result, 0)
         return result
 
-    def time_penalty_on_non_collided_chromosomes(self, penalty_coefficient: float = 0.2):
-        """ 
+    def time_penalty_on_non_collided_chromosomes(
+        self, penalty_coefficient: float = 0.2
+    ):
+        """
         Only add penalty to non collided chromosomes
         """
         time_penalty = self.times / c.N_frame * penalty_coefficient

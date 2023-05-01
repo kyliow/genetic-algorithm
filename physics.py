@@ -11,16 +11,19 @@ class Physics:
     Physics class
     """
 
-    def compute_initial_accelerations(
+    def compute_random_accelerations(
         N_chromosome_to_spawn: int = c.N_chromosome,
+        N_length: int = c.N_frame,
+        min_acc: int = -c.max_acceleration,
+        max_acc: int = c.max_acceleration + 1,
     ) -> numpy.ndarray:
         """
         Compute initial accelerations of the chromosomes
         """
         accelerations = numpy.random.randint(
-            -c.max_acceleration,
-            c.max_acceleration + 1,
-            (N_chromosome_to_spawn, c.N_frame),
+            min_acc,
+            max_acc,
+            (N_chromosome_to_spawn, N_length),
         )
         accelerations = accelerations * c.slowdown_factor
         return accelerations

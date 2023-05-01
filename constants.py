@@ -1,6 +1,6 @@
 # Genetic algorithm settings
-N_chromosome = 60
-N_generation = 500
+N_chromosome = 50
+N_generation = 200
 remove_proportion = 0.2
 p_crossover = 0.2
 p_mutation = 0.05
@@ -9,7 +9,7 @@ p_mutation = 0.05
 N_frame = 400
 
 # Random seed
-random_seed = 125
+random_seed = 1000
 
 # Patch settings
 N_rectangle = 18

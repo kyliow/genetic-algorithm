@@ -23,11 +23,11 @@ def compute_fitness_probability(distances, times):
     return p_fitness
 
 
-def plot_best_fitness_per_generation(fitness, max_g):
+def plot_stat_per_generation(stat, max_g, ylabel):
     f, ax = pyplot.subplots(figsize=(10, 5))
-    ax.plot(range(max_g), fitness)
+    ax.plot(range(max_g), stat)
     ax.set_xlabel("Generation")
-    ax.set_ylabel("Best fitness")
+    ax.set_ylabel(ylabel)
     pyplot.show()
 
 
@@ -39,9 +39,11 @@ def main(animate=False, save=False, g_per_save: int = 10):
     animation_class = Animation()
 
     # Compute initial accelerations
-    accelerations = Physics.compute_initial_accelerations()
+    accelerations = Physics.compute_random_accelerations()
 
     best_fitness = []
+    best_distances = []
+    best_times = []
     max_g = c.N_generation
     for g in range(c.N_generation):
         # Calculate the positions for this generation
@@ -55,13 +57,20 @@ def main(animate=False, save=False, g_per_save: int = 10):
         ]
         distances, times, collided = zip(*distances_times_collided)
 
+        # Convert to numpy arrays
+        distances = numpy.asarray(distances)
+        times = numpy.asarray(times)
+        collided = numpy.asarray(collided)
+
         # Calculate fitness for all chromosomes
         fitness_class = Fitness(distances, times, collided)
-        fitnesses = fitness_class.time_penalty_on_non_collided_chromosomes()
+        fitnesses = fitness_class.normalised_distance()
 
         # Get the best performing chromosome
         best_fitness_index = numpy.argmax(fitnesses)
         best_fitness.append(fitnesses[best_fitness_index])
+        best_distances.append(distances[best_fitness_index])
+        best_times.append(times[best_fitness_index])
         print(
             f"----- Generation #{g} -----\n"
             + f"Distance travelled: {distances[best_fitness_index]:.3f}\n"
@@ -88,20 +97,19 @@ def main(animate=False, save=False, g_per_save: int = 10):
         # Run core genetic algorithms when last generation has not reached
         if g != c.N_generation - 1:
             p_fitness = fitness_class.fitness_probabilities(fitnesses)
-            accelerations = Selection(p_fitness, accelerations).roulette_wheel()
+            accelerations = Selection(
+                p_fitness, accelerations, times, collided
+            ).roulette_wheel()
             accelerations = Crossover(accelerations).simple_crossover()
             accelerations = Mutation(accelerations).simple_mutation()
 
-    plot_best_fitness_per_generation(best_fitness, max_g)
+    # plot_stat_per_generation(best_fitness, max_g, 'Best fitness')
+    # plot_stat_per_generation(best_distances, max_g, 'Best distance')
+    # plot_stat_per_generation(best_times, max_g, 'Best time')
 
     print("Simulation complete!")
 
 
 if __name__ == "__main__":
-    # f, ax = pyplot.subplots()
-    # ax.plot(range(N_frame), acceleration)
-    # ax.plot(range(N_frame), velocity)
-    # ax.plot(range(N_frame), position)
-    # pyplot.show()
-    main(animate=False)
+    main(animate=True, save=True, g_per_save=10)
 

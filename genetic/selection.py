@@ -6,12 +6,20 @@ from physics import Physics
 
 class Selection:
     """
-    Class to handle selection related algorithm
+    Class to handle selection related algorithms
     """
 
-    def __init__(self, p_fitness: numpy.ndarray, accelerations: numpy.ndarray):
+    def __init__(
+        self,
+        p_fitness: numpy.ndarray,
+        accelerations: numpy.ndarray,
+        times: numpy.ndarray,
+        collided: numpy.ndarray,
+    ):
         self.p_fitness = p_fitness
         self.accelerations = accelerations
+        self.times = times
+        self.collided = collided
 
     def simple_sort(self) -> numpy.ndarray:
         """
@@ -43,7 +51,7 @@ class Selection:
 
         return self.accelerations[chromosome_to_keep_indices]
 
-    def simple_sort_with_new_chromosomes(self) -> numpy.ndarray:
+    def modified_sort(self) -> numpy.ndarray:
         """
         Selection via simple sorting, then introduce new chromosomes to replace
         bad chromosomes
@@ -54,9 +62,25 @@ class Selection:
             :N_chromosome_to_be_removed
         ]
 
+        # Replace collided section with new chromosome section
+        remaining_chromosome_indices = p_fitness_sorted_indices[
+            N_chromosome_to_be_removed:
+        ]
+        remaining_chromosome_collided = self.collided[remaining_chromosome_indices]
+        remaining_collided_chromosome_indices = remaining_chromosome_indices[
+            remaining_chromosome_collided
+        ]
+        preset_difference = 10
+        for i in remaining_collided_chromosome_indices:
+            collision_time = self.times[i]
+            real_difference = min(collision_time + 1, preset_difference)
+            self.accelerations[
+                i, collision_time + 1 - real_difference : collision_time + 1
+            ] = Physics.compute_random_accelerations(1, real_difference, max_acc=0)
+
         # Replace worst chromosomes with new chromosomes
         self.accelerations[
             worse_m_chromosome_indices
-        ] = Physics.compute_initial_accelerations(N_chromosome_to_be_removed)
+        ] = Physics.compute_random_accelerations(N_chromosome_to_be_removed)
 
         return self.accelerations
